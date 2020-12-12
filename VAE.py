@@ -1,5 +1,7 @@
+import pydot
 import numpy as np
 import matplotlib.pyplot as plt
+from keras.utils.vis_utils import plot_model
 from scipy.stats import norm
 import keras
 from keras.optimizers import Adam
@@ -38,7 +40,7 @@ class VAE():
         decoder_output = self.decoder(encoder_output)
         self.vae_model = Model(VAE_inp, decoder_output, name='VAE')
         self.vae_model.summary()
-        self.vae_model.compile(optimizer=optimizer, loss=self.loss_func())
+        self.vae_model.compile(optimizer=optimizer, loss='binary_crossentropy')  # self.loss_func()
 
     def sampling(self, mu_log_variance):
         mu, log_variance = mu_log_variance
@@ -100,6 +102,7 @@ class VAE():
         output = Lambda(self.sampling, name='encoder_output')([self.mu, self.log])
 
         model = Model(inp, output, name='VAE_encoder')
+        plot_model(model, show_shapes=True, to_file='./images/VAE/VAE_encoder.png')
         model.summary()
         return model
 
@@ -128,6 +131,7 @@ class VAE():
         output = LeakyReLU(name="decoder_leakyrelu_4")(conv_trans4)
 
         model = Model(inp, output, name='VAE_decoder')
+        plot_model(model, show_shapes=True, to_file='./images/VAE/VAE_decoder.png')
         model.summary()
         return model
 
@@ -166,19 +170,22 @@ if __name__ == '__main__':
     X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], X_train.shape[2], 1))
     X_test = X_test.reshape((X_test.shape[0], X_train.shape[1], X_train.shape[2], 1))
     X_total = np.concatenate((X_train, X_test), axis=0)
-    if not os.path.exists("VAE.h5"):
-        vae = VAE()
-        his = vae.train(x_train=X_total, epochs=50, batch_size=150)
-        print('loss: ' + str(np.mean(his.history['loss'])) + ', val_loss:' + str(np.mean(his.history['val_loss'])))
-        plt.figure()
-        plt.plot(his.epoch, his.history['loss'], label='loss')
-        plt.plot(his.epoch, his.history['val_loss'], label='val_loss')
-        plt.xlabel("epochs")
-        plt.ylabel("loss")
-        plt.legend()
-        plt.savefig("images/VAE/vae_loss.jpg")
+    # if not os.path.exists("VAE.h5"):
+    vae = VAE()
+    his = vae.train(x_train=X_total, epochs=20, batch_size=150)
+    print('loss: ' + str(np.mean(his.history['loss'])) + ', val_loss:' + str(np.mean(his.history['val_loss'])))
+    plt.figure()
+    plt.plot(his.epoch, his.history['loss'], label='loss')
+    plt.plot(his.epoch, his.history['val_loss'], label='val_loss')
+    plt.xlabel("epochs")
+    plt.ylabel("loss")
+    plt.legend()
+    plt.savefig("images/VAE/vae_loss.png")
+    '''
     else:
         encoder = load_model("VAE_encoder.h5", compile=False)
         decoder = load_model("VAE_decoder.h5", compile=False)
         vae = load_model("VAE.h5", compile=False)
+    '''
     vae.predict(X_train[:25])
+
