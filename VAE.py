@@ -40,7 +40,7 @@ class VAE():
         decoder_output = self.decoder(encoder_output)
         self.vae_model = Model(VAE_inp, decoder_output, name='VAE')
         self.vae_model.summary()
-        self.vae_model.compile(optimizer=optimizer, loss='binary_crossentropy')  # self.loss_func()
+        self.vae_model.compile(optimizer=optimizer, loss=self.loss_func())  # self.loss_func()
 
     def sampling(self, mu_log_variance):
         mu, log_variance = mu_log_variance
@@ -128,7 +128,8 @@ class VAE():
 
         conv_trans4 = Conv2DTranspose(filters=1, kernel_size=(3, 3), padding="same", strides=1,
                                       name="decoder_conv_tran_4")(leakyrelu3)
-        output = LeakyReLU(name="decoder_leakyrelu_4")(conv_trans4)
+        norm_layer4 = BatchNormalization(name="decoder_norm_4")(conv_trans4)
+        output = LeakyReLU(name="decoder_leakyrelu_4")(norm_layer4)
 
         model = Model(inp, output, name='VAE_decoder')
         plot_model(model, show_shapes=True, to_file='./images/VAE/VAE_decoder.png')
@@ -172,7 +173,8 @@ if __name__ == '__main__':
     X_total = np.concatenate((X_train, X_test), axis=0)
     # if not os.path.exists("VAE.h5"):
     vae = VAE()
-    his = vae.train(x_train=X_total, epochs=20, batch_size=150)
+    his = vae.train(x_train=X_total, epochs=50, batch_size=200)
+    vae.predict(X_train[:25])
     print('loss: ' + str(np.mean(his.history['loss'])) + ', val_loss:' + str(np.mean(his.history['val_loss'])))
     plt.figure()
     plt.plot(his.epoch, his.history['loss'], label='loss')
@@ -187,5 +189,4 @@ if __name__ == '__main__':
         decoder = load_model("VAE_decoder.h5", compile=False)
         vae = load_model("VAE.h5", compile=False)
     '''
-    vae.predict(X_train[:25])
 
